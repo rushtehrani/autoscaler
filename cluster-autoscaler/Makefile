@@ -24,7 +24,7 @@ ifndef REGISTRY
 	$(ERR)
 endif
 	docker build --pull -t ${REGISTRY}/cluster-autoscaler:${TAG} .
-	gcloud docker -- push ${REGISTRY}/cluster-autoscaler:${TAG}
+	docker push ${REGISTRY}/cluster-autoscaler:${TAG}
 
 clean:
 	rm -f cluster-autoscaler

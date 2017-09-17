@@ -45,12 +45,14 @@ type productAttributes struct {
 	InstanceType string `json:"instanceType"`
 	VCPU         string `json:"vcpu"`
 	Memory       string `json:"memory"`
+	GPU          string `json:"gpu"`
 }
 
 type instanceType struct {
 	InstanceType string
 	VCPU         int64
 	Memory       int64
+	GPU          int64
 }
 
 var packageTemplate = template.Must(template.New("").Parse(`/*
@@ -77,6 +79,7 @@ type instanceType struct {
 	InstanceType string
 	VCPU         int64
 	MemoryMb     int64
+	GPU          int64
 }
 
 // InstanceTypes is a map of ec2 resources
@@ -86,6 +89,7 @@ var InstanceTypes = map[string]*instanceType{
 		InstanceType: "{{ .InstanceType }}",
 		VCPU:         {{ .VCPU }},
 		MemoryMb:     {{ .Memory }},
+		GPU:          {{ .GPU }},
 	},
 {{- end }}
 }
@@ -103,7 +107,7 @@ func main() {
 	for _, p := range partitions {
 		for _, r := range p.Regions() {
 			url := "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/" + r.ID() + "/index.json"
-			glog.Infof("fetching %s\n", url)
+			glog.V(1).Infof("fetching %s\n", url)
 			res, err := http.Get(url)
 			if err != nil {
 				glog.Warningf("Error fetching %s skipping...\n", url)
@@ -127,11 +131,24 @@ func main() {
 
 			for _, product := range unmarshalled.Products {
 				attr := product.Attributes
-				if attr.InstanceType != "" && attr.Memory != "" && attr.VCPU != "" {
+				if attr.InstanceType != "" && strings.Contains(attr.InstanceType, ".") {
 					instanceTypes[attr.InstanceType] = &instanceType{
 						InstanceType: attr.InstanceType,
-						VCPU:         parseCPU(attr.VCPU),
-						Memory:       parseMemory(attr.Memory),
+					}
+					if attr.Memory != "" && attr.Memory != "NA" {
+						instanceTypes[attr.InstanceType].Memory = parseMemory(attr.Memory)
+					}
+					if attr.VCPU != "" {
+						instanceTypes[attr.InstanceType].VCPU = parseCPU(attr.VCPU)
+					}
+					if attr.GPU != "" {
+						instanceTypes[attr.InstanceType].GPU = parseCPU(attr.GPU)
+					} else {
+						if attr.InstanceType == "p2.xlarge" {
+							instanceTypes[attr.InstanceType].GPU = 1
+						} else if attr.InstanceType == "p2.8xlarge" {
+							instanceTypes[attr.InstanceType].GPU = 8
+						}
 					}
 				}
 			}
