@@ -1,3 +1,5 @@
+// +build ignore
+
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -13,8 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-// +build ignore
 
 package main
 
@@ -131,7 +131,7 @@ func main() {
 
 			for _, product := range unmarshalled.Products {
 				attr := product.Attributes
-				if attr.InstanceType != "" && strings.Contains(attr.InstanceType, ".") {
+				if attr.InstanceType != "" {
 					instanceTypes[attr.InstanceType] = &instanceType{
 						InstanceType: attr.InstanceType,
 					}
@@ -143,12 +143,6 @@ func main() {
 					}
 					if attr.GPU != "" {
 						instanceTypes[attr.InstanceType].GPU = parseCPU(attr.GPU)
-					} else {
-						if attr.InstanceType == "p2.xlarge" {
-							instanceTypes[attr.InstanceType].GPU = 1
-						} else if attr.InstanceType == "p2.8xlarge" {
-							instanceTypes[attr.InstanceType].GPU = 8
-						}
 					}
 				}
 			}
